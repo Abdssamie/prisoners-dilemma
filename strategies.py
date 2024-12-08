@@ -347,3 +347,36 @@ class MemoryOne(Strategy):
         else:
             return 1 if random.random() < self.s else 0
 
+
+class Reactive(Strategy):
+    name = "Reactive"
+    abbreviation = "R(y,p,q)"
+
+    def __init__(self, is_p1, y, p, q):
+        super().__init__(self, is_p1)
+        self.y = y if self.is_valid(y) else 0.55
+        self.p = p if self.is_valid(p) else 0.7
+        self.q = q if self.is_valid(q) else 0.4
+
+    @staticmethod
+    def is_valid(probability):
+        return 0 <= probability <= 1
+
+    def make_choice(self, rounds_results=None, current_round=None):
+        if current_round == 0:
+            return 1 if random.random() < self.y else 0
+
+        if self.is_p1:
+            opponent_last_choice = rounds_results[1, current_round - 1]
+        else:
+            opponent_last_choice = rounds_results[0, current_round - 1]
+
+        if opponent_last_choice == 0:
+            return 1 if random.random() < self.p else 0
+        else:
+            return 1 if random.random() < self.q else 0
+
+
+class ZeroDeterminant(MemoryOne):
+    name = "Zero-determinant"
+    abbreviation = "ZD(p,q,r,s)"
