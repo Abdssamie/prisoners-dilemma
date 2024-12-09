@@ -86,6 +86,7 @@ class TitForTat(Strategy):
 
         return 1 if opponent_last_choice == 1 else 0
 
+
 class CooperateUnconditionally(Strategy):
     name = "Cooperate Unconditionally"
     abbreviation = "CU"
@@ -380,3 +381,8 @@ class Reactive(Strategy):
 class ZeroDeterminant(MemoryOne):
     name = "Zero-determinant"
     abbreviation = "ZD(p,q,r,s)"
+
+    def __init__(self, rounds, is_p1, p, q, r, s):
+        super().__init__(rounds, is_p1, p, q, r, s)
+
+# TODO Implement ZD strategies
