@@ -3,6 +3,7 @@ from tqdm import tqdm
 from strategies import TitForTat, Random
 import math
 
+
 class Simulation:
     payoffs_symbols = ["R", "S", "T", "P"]
     payoff_matrix = [3, 5, 5, 1]
@@ -30,8 +31,6 @@ class Simulation:
         for game in self.games_board:
             continue
         TODO: "To complete"
-
-
 
 
 class Game:
