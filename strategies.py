@@ -21,6 +21,12 @@ class Strategy:
         self.rounds = rounds
         self.tournament_score = 0
         self.is_p1 = is_p1
+        self.payoff_dict = {
+            (0, 1): 0,  # Player 0 defects, Player 1 cooperates -> S = 0
+            (0, 0): 1,  # Both defect -> P = 1
+            (1, 0): 5,  # Player 0 cooperates, Player 1 defects -> T = 5
+            (1, 1): 3  # Both cooperate -> R = 3
+        }
 
     def make_choice(self, rounds_results=None, current_round=None):
         """
@@ -103,9 +109,27 @@ class DefectUnconditionally(Strategy):
     abbreviation = "DU"
 
     def __init__(self, rounds):
+        """
+        Initialize a new DefectUnconditionally strategy instance.
+
+        Parameters:
+        rounds (int): The total number of rounds in the game.
+        """
         super().__init__(rounds)
 
     def make_choice(self, rounds_results=None, current_round=None):
+        """
+        Make a choice for the current round based on the Defect Unconditionally strategy.
+
+        Parameters:
+        rounds_results (numpy.ndarray, optional): A 2D array containing the results of previous rounds.
+            Shape is (2, num_rounds), where rounds_results[0] contains player 1's choices
+            and rounds_results[1] contains player 2's choices. Defaults to None.
+        current_round (int, optional): The current round number (0-indexed). Defaults to None.
+
+        Returns:
+        int: The choice made by the strategy, which is always 0 (defect).
+        """
         return 0
 
 
@@ -116,6 +140,21 @@ class Random(Strategy):
         super().__init__(rounds)
 
     def make_choice(self, rounds_results=None, current_round=None):
+        """
+        Make a random choice for the current round in the Prisoner's Dilemma game.
+
+        This strategy randomly chooses between cooperation (1) and defection (0) 
+        with equal probability, regardless of previous rounds' results.
+
+        Parameters:
+        rounds_results (numpy.ndarray, optional): A 2D array containing the results of previous rounds.
+            Shape is (2, num_rounds), where rounds_results[0] contains player 1's choices
+            and rounds_results[1] contains player 2's choices. Defaults to None.
+        current_round (int, optional): The current round number (0-indexed). Defaults to None.
+
+        Returns:
+        int: The choice made by the strategy (1 for cooperate, 0 for defect).
+        """
         return random.choice((1, 0))
 
 
@@ -182,7 +221,7 @@ class GrimTrigger(Strategy):
         if current_round == 0:
             return 1  # First round, cooperate
         # Check if the opponent defected in the previous round
-        opponent_last_choice = rounds_results[1, current_round - 1] if self.is_p1 else rounds_results[0, current_round - 1]
+        opponent_last_choice = rounds_results[1, current_round-1] if self.is_p1 else rounds_results[0, current_round-1]
         if opponent_last_choice == 0:
             self.triggered = True  # Trigger defection after opponent defects
             return 0
@@ -311,12 +350,25 @@ class MemoryOne(Strategy):
     name = "Memory-one"
     abbreviation = "S(p,q,r,s)"
     """
-            Cooperates with probabilities probabilities p,q,r or s 
-            after outcomes (C,C), (C,D), (D,C) or (D,D).
-            """
+    Implements a Memory-one strategy in the Prisoner's Dilemma game.
+
+    This strategy cooperates with probabilities p, q, r, or s
+    after outcomes (C,C), (C,D), (D,C), or (D,D) respectively.
+    """
 
     def __init__(self, rounds, is_p1, p, q, r, s):
-        super().__init__(rounds, is_p1,)
+        """
+        Initialize a new Memory-one strategy instance.
+
+        Parameters:
+        rounds (int): The total number of rounds in the game.
+        is_p1 (bool): Indicates whether this strategy is for player 1 (True) or player 2 (False).
+        p (float): Probability of cooperating after (C,C) outcome.
+        q (float): Probability of cooperating after (C,D) outcome.
+        r (float): Probability of cooperating after (D,C) outcome.
+        s (float): Probability of cooperating after (D,D) outcome.
+        """
+        super().__init__(rounds, is_p1)
         self.rounds_to_defect = np.zeros(rounds, dtype=bool)
 
         self.p = p if self.is_valid_proba(p) else 0.8
@@ -326,9 +378,30 @@ class MemoryOne(Strategy):
 
     @staticmethod
     def is_valid_proba(probability):
+        """
+        Check if a given probability is valid (between 0 and 1, inclusive).
+
+        Parameters:
+        probability (float): The probability to check.
+
+        Returns:
+        bool: True if the probability is valid, False otherwise.
+        """
         return 0 <= probability <= 1
 
     def make_choice(self, rounds_results=None, current_round=None):
+        """
+        Make a choice for the current round based on the Memory-one strategy.
+
+        Parameters:
+        rounds_results (numpy.ndarray, optional): A 2D array containing the results of previous rounds.
+            Shape is (2, num_rounds), where rounds_results[0] contains player 1's choices
+            and rounds_results[1] contains player 2's choices. Defaults to None.
+        current_round (int, optional): The current round number (0-indexed). Defaults to None.
+
+        Returns:
+        int: The choice made by the strategy (1 for cooperate, 0 for defect).
+        """
         if current_round == 0:
             return 1 if random.random() < self.p else 0
 
@@ -385,4 +458,56 @@ class ZeroDeterminant(MemoryOne):
     def __init__(self, rounds, is_p1, p, q, r, s):
         super().__init__(rounds, is_p1, p, q, r, s)
 
-# TODO Implement ZD strategies
+
+class Equalizer(ZeroDeterminant):
+    name = "Equalizer"
+    abbreviation = "SET-n"
+
+    def __init__(self, rounds, is_p1, p, q, r, s, target):
+        super().__init__(rounds, is_p1, p, q, r, s)
+        self.target = target
+
+    def find_optimal_choice(self, current_round, counts):
+        """
+        Let's define this function which measures the difference between the total goal score for the opponent
+        in the infinite Prisoner's Dilemma and the current score using t, r, p which respectively stand for number
+        times to Temptation, Reward and Punishment to the opponent while s not mentioned in the function, is the number
+        of times when the opponent got Sucker result
+            f_m (t,r,p) = 5t + 3r + p - mn
+        The absolute value of this function should be as close as possible to 0 in each iteration m
+        For each iteration there are 4 possible values for the function:
+
+            """
+
+        s, p, t, r = counts
+        m = current_round
+        n = self.target
+
+        f_m_possibilities = np.array([
+            5 * t + 3 * r + p - m * n,
+            5 * t + 3 * r + p + 1 - m * n,
+            5 * (t + 1) + 3 * r + p - m * n,
+            5 * t + 3 * (r + 1) + p - m * n
+        ])
+
+        min_index = np.argmin(f_m_possibilities)
+
+        return 0 if min_index == 0 or min_index == 1 else 1
+
+    def make_choice(self, rounds_results=None, current_round=None):
+
+        if current_round == 0:
+            return self.find_optimal_choice(1, [0, 0, 0, 0])
+
+        if self.is_p1:
+            # Ignore The Warning Here
+            opponent_payoffs = [self.payoff_dict[tuple(map(int, list(reversed(round_result))))]
+                                for round_result in rounds_results]
+        else:
+            opponent_payoffs = [self.payoff_dict[tuple(map(int, list(round_result)))]
+                                for round_result in rounds_results]
+
+        # Count occurrences of each payoff
+        unique_payoffs, counts = np.unique(opponent_payoffs, return_counts=True)
+
+        return self.find_optimal_choice(current_round, counts)

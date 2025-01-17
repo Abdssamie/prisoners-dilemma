@@ -24,13 +24,12 @@ class Simulation:
 
         for strategy in strategies_names:
             continue
-        TODO: "TO COMPLETE"
-
+        # TODO: TO COMPLETE
 
     def start_simulation(self):
         for game in self.games_board:
             continue
-        TODO: "To complete"
+        # TODO: To complete
 
 
 class Game:
