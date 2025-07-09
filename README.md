@@ -1,5 +1,5 @@
-Prisoner's Dilemma Simulation in Python
-This repository provides an implementation of the classic game theory scenario known as the Prisoner's Dilemma in Python. The simulation demonstrates how two players, each facing the decision to cooperate or defect, can achieve different outcomes based on their choices.
+## Prisoner's Dilemma Simulation in Python
+This repository provides an implementation of the classic game theory scenario known as the Prisoner's Dilemma. The simulation demonstrates how two players, each facing the decision to cooperate or defect, can achieve different outcomes based on their choices.
 
 Features:
 # Strategies for the Iterated Prisoner's Dilemma
